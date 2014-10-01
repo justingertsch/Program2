@@ -1,7 +1,9 @@
+import java.util.ArrayList;
+
 /**
- * Created by lucian on 9/30/14.
+ * Created by Justin on 9/30/14.
  */
 public interface Report
 {
-    public String processSnapShot(String[][] ss);
+    public String processSnapShot(ArrayList<String[]> ss, String lastUpdated);
 }

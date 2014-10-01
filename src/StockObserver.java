@@ -1,5 +1,6 @@
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -8,8 +9,9 @@ import java.util.Observer;
  */
 public class StockObserver implements Observer
 {
-    private String[][] snapShot;
-    private String processedReport;
+    private ArrayList<String[]> snapShot = null;
+    private String processedReport = null;
+    private String lastUpdated = null;
     private PrintWriter out = null;
     private Report report = null;
 
@@ -35,7 +37,8 @@ public class StockObserver implements Observer
         {
             LocalStocks ls = (LocalStocks) o;
             this.snapShot = ls.getSnapShot();
-            this.processedReport = this.report.processSnapShot(this.snapShot);
+            this.lastUpdated = ls.getLastUpdated();
+            this.processedReport = this.report.processSnapShot(this.snapShot, this.lastUpdated);
             writeToFile();
         }
     }

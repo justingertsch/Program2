@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Observable;
 import java.util.Scanner;
 
@@ -11,15 +10,10 @@ import java.util.Scanner;
  */
 public class LocalStocks extends Observable
 {
-    private String averageStr;
-    private int averageCompanyCount = 0;
-    private double averageTotal = 0;
-    private String change10Str;
-    private String selectionsStr;
+
     private String lastUpdated;
+    private ArrayList<String[]> snapShot = new ArrayList<String[]>();
     private boolean firstLine = true;
-    private String[] selectionTicker = {"ALL","BA","BC","GBEL","KFT","MCD","TR","WAG"};
-    final double TEN_PERCENT = 10.0;
     Scanner fin = null;
 
     public LocalStocks(String file)
@@ -41,6 +35,8 @@ public class LocalStocks extends Observable
     {
        String line;
        this.firstLine = true;
+       this.snapShot.clear();
+
        while(fin.hasNextLine())
        {
            line = fin.nextLine();
@@ -48,9 +44,12 @@ public class LocalStocks extends Observable
                 break;
 
            if(firstLine)
-                this.lastUpdated = System.lineSeparator() + line;
-
-           checkTicker(line);
+           {
+               this.lastUpdated = line;
+               this.firstLine = false;
+           }
+           else
+               this.snapShot.add(checkTicker(line));
        }
        stocksChanged();
     }
@@ -61,42 +60,27 @@ public class LocalStocks extends Observable
         notifyObservers();
     }
 
-    public String getAverage()
+    public ArrayList<String[]> getSnapShot()
     {
-        return this.averageStr;
+        return this.snapShot;
     }
 
-    public String getChange10()
+    public String getLastUpdated()
     {
-       return this.change10Str;
+       return this.lastUpdated;
     }
 
-    public String getSelections()
-    {
-        return this.selectionsStr;
-    }
 
 
     /* private helper methods */
 
-    private void checkTicker(String line)
+    private String[] checkTicker(String line)
     {
-        String[] formattedLine = null;
-        if(!this.firstLine)
-        {
-            formattedLine = formatTicker(line);
-            // should always have a length of nine if everything went right
-            assert true : formattedLine.length == 9;
+        String[] formattedLine = formatTicker(line);
+        // should always have a length of nine if everything went right
+        assert true : formattedLine.length == 9;
+        return formattedLine;
 
-        }
-        setAverage(formattedLine);
-        setChange10(formattedLine);
-        setSelection(formattedLine);
-
-        if(this.firstLine)
-        {
-            this.firstLine = false;
-        }
     }
 
     private String[] formatTicker(String line)
@@ -129,56 +113,6 @@ public class LocalStocks extends Observable
         return parts;
     }
 
-    private void setAverage(String[] formattedLine)
-    {
-        if(this.firstLine)
-        {
-            this.averageCompanyCount = 0;
-            this.averageTotal = 0;
-        }
-        else
-        {
-            this.averageCompanyCount++;
-            this.averageTotal += Double.parseDouble(formattedLine[2]);
-            this.averageStr = this.lastUpdated + ", Average price: " + (this.averageTotal / this.averageCompanyCount) + System.lineSeparator();
-        }
-    }
-
-    private void setChange10(String[] formattedLine)
-    {
-        if(this.firstLine)
-        {
-            this.change10Str = this.lastUpdated + ":" + System.lineSeparator();
-        }
-        else
-        {
-            double change = Double.parseDouble(formattedLine[4]);
-            if (change >= TEN_PERCENT || change <= -TEN_PERCENT)
-            {
-                this.change10Str += formattedLine[1] + " " + formattedLine[2] + " " + formattedLine[4] + System.lineSeparator();
-            }
-        }
-    }
-
-    private void setSelection(String[] formattedLine)
-    {
-        if(this.firstLine)
-        {
-            this.selectionsStr = this.lastUpdated + ":" + System.lineSeparator();
-        }
-        else
-        {
-            if (Arrays.asList(this.selectionTicker).contains(formattedLine[1]))
-            {
-                StringBuilder strbuild = new StringBuilder();
-                for (String s : formattedLine)
-                    strbuild.append(s).append(" ");
-                strbuild.deleteCharAt(strbuild.length() - 1);
-                strbuild.append(System.lineSeparator());
-                this.selectionsStr += strbuild.toString();
-            }
-        }
-    }
 
     private boolean isNumeric(String str)
     {
@@ -196,10 +130,10 @@ public class LocalStocks extends Observable
     public static void main(String[] args)
     {
         LocalStocks ls = new LocalStocks("Ticker.dat");
-        AverageObserver av = new AverageObserver(ls);
+        StockObserver av = new StockObserver(ls, new AverageReport(), "Average");
         ls.setSnapshot();
-        Change10Observer ch = new Change10Observer(ls);
-        SelectionObserver sl = new SelectionObserver(ls);
+        StockObserver ch = new StockObserver(ls, new Change10Report(), "Change10");
+        StockObserver sl = new StockObserver(ls, new SelectionReport(), "Selection");
         ls.setSnapshot();
         ls.setSnapshot();
         ls.deleteObserver(sl);
